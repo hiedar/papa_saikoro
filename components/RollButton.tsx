@@ -11,13 +11,13 @@ export default function RollButton({ onClick, disabled }: RollButtonProps) {
       onClick={onClick}
       disabled={disabled}
       className="
-        px-8 py-4
+        px-6 py-3 md:px-8 md:py-4
         bg-gradient-to-r from-indigo-500 to-purple-600
         hover:from-indigo-600 hover:to-purple-700
         active:from-indigo-700 active:to-purple-800
         disabled:from-gray-400 disabled:to-gray-500
         disabled:cursor-not-allowed
-        text-white text-lg font-bold
+        text-white text-base md:text-lg font-bold
         rounded-xl
         shadow-lg hover:shadow-xl
         transform hover:scale-105 active:scale-95

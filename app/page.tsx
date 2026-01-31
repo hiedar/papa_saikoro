@@ -34,15 +34,15 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 overflow-hidden">
-      {/* 3Dシーン - 画面の大部分を占める */}
-      <div className="flex-1 relative">
+    <div className="h-[100dvh] flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 overflow-hidden">
+      {/* 3Dシーン - 残りのスペースを使う */}
+      <div className="flex-1 min-h-0 relative">
         <DiceScene onRollComplete={handleRollComplete} diceRef={diceRef} />
 
         {/* ヘッダー - 3Dシーンの上に重ねる */}
-        <header className="absolute top-6 left-0 right-0 text-center pointer-events-none">
+        <header className="absolute top-4 left-0 right-0 text-center pointer-events-none">
           <h1
-            className="text-4xl md:text-5xl tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
+            className="text-3xl md:text-5xl tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
             style={{
               fontFamily: 'var(--font-dela-gothic), sans-serif',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
@@ -56,22 +56,22 @@ export default function Home() {
         </header>
       </div>
 
-      {/* コントロールエリア - コンパクトに */}
-      <div className="py-4 flex items-center justify-center gap-8 bg-slate-900/80 backdrop-blur">
+      {/* コントロールエリア - 必ず表示 */}
+      <div className="shrink-0 py-3 flex items-center justify-center gap-6 bg-slate-900/90 backdrop-blur safe-bottom">
         <RollButton onClick={handleRoll} disabled={isRolling} />
 
         {/* 結果表示 */}
-        <div className="w-32 flex items-center justify-center">
+        <div className="w-28 flex items-center justify-center">
           {result !== null && (
             <div className="text-center animate-bounce-in">
-              <span className="text-gray-400 text-sm">結果: </span>
-              <span className="text-4xl font-bold text-white ml-1">
+              <span className="text-gray-400 text-xs">結果: </span>
+              <span className="text-3xl font-bold text-white ml-1">
                 {result}
               </span>
             </div>
           )}
           {isRolling && (
-            <div className="text-gray-400 text-sm animate-pulse">
+            <div className="text-gray-400 text-xs animate-pulse">
               振っています...
             </div>
           )}
