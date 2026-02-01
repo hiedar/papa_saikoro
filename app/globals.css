@@ -41,7 +41,11 @@ body {
   animation: bounce-in 0.5s ease-out;
 }
 
-/* Safe area for devices with home indicator */
+/* Safe area for devices with notch/home indicator */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }

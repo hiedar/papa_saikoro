@@ -35,47 +35,48 @@ export default function Home() {
 
   return (
     <div className="h-[100dvh] flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 overflow-hidden">
-      {/* 3Dシーン - 残りのスペースを使う */}
-      <div className="flex-1 min-h-0 relative">
-        <DiceScene onRollComplete={handleRollComplete} diceRef={diceRef} />
+      {/* ヘッダー＆コントロールエリア */}
+      <div className="shrink-0 pt-4 pb-3 flex flex-col items-center gap-3 bg-slate-900/90 backdrop-blur safe-top">
+        {/* ロゴ */}
+        <h1
+          className="text-3xl md:text-5xl tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
+          style={{
+            fontFamily: 'var(--font-dela-gothic), sans-serif',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}
+        >
+          パパ サイコロ
+        </h1>
 
-        {/* ヘッダー - 3Dシーンの上に重ねる */}
-        <header className="absolute top-4 left-0 right-0 text-center pointer-events-none">
-          <h1
-            className="text-3xl md:text-5xl tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
-            style={{
-              fontFamily: 'var(--font-dela-gothic), sans-serif',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            パパ サイコロ
-          </h1>
-        </header>
+        {/* ボタンと結果 */}
+        <div className="flex items-center justify-center gap-6">
+          <RollButton onClick={handleRoll} disabled={isRolling} />
+
+          {/* 結果表示 */}
+          <div className="w-28 flex items-center justify-center">
+            {result !== null && (
+              <div className="text-center animate-bounce-in">
+                <span className="text-gray-400 text-xs">結果: </span>
+                <span className="text-3xl font-bold text-white ml-1">
+                  {result}
+                </span>
+              </div>
+            )}
+            {isRolling && (
+              <div className="text-gray-400 text-xs animate-pulse">
+                振っています...
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* コントロールエリア - 必ず表示 */}
-      <div className="shrink-0 py-3 flex items-center justify-center gap-6 bg-slate-900/90 backdrop-blur safe-bottom">
-        <RollButton onClick={handleRoll} disabled={isRolling} />
-
-        {/* 結果表示 */}
-        <div className="w-28 flex items-center justify-center">
-          {result !== null && (
-            <div className="text-center animate-bounce-in">
-              <span className="text-gray-400 text-xs">結果: </span>
-              <span className="text-3xl font-bold text-white ml-1">
-                {result}
-              </span>
-            </div>
-          )}
-          {isRolling && (
-            <div className="text-gray-400 text-xs animate-pulse">
-              振っています...
-            </div>
-          )}
-        </div>
+      {/* 3Dシーン - 残りのスペースを使う */}
+      <div className="flex-1 min-h-0">
+        <DiceScene onRollComplete={handleRollComplete} diceRef={diceRef} />
       </div>
     </div>
   );
