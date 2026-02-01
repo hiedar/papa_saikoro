@@ -36,7 +36,7 @@ export default function Home() {
   return (
     <div className="h-[100dvh] flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 overflow-hidden">
       {/* ヘッダー＆コントロールエリア */}
-      <div className="shrink-0 pt-4 pb-3 flex flex-col items-center gap-3 bg-slate-900/90 backdrop-blur safe-top">
+      <div className="shrink-0 pt-4 pb-3 flex flex-col items-center gap-6 bg-slate-900/90 backdrop-blur safe-top">
         {/* ロゴ */}
         <h1
           className="text-3xl md:text-5xl tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
@@ -56,11 +56,11 @@ export default function Home() {
           <RollButton onClick={handleRoll} disabled={isRolling} />
 
           {/* 結果表示 */}
-          <div className="w-28 flex items-center justify-center">
+          <div className="w-32 flex items-center justify-center">
             {result !== null && (
               <div className="text-center animate-bounce-in">
                 <span className="text-gray-400 text-xs">結果: </span>
-                <span className="text-3xl font-bold text-white ml-1">
+                <span className="text-5xl font-bold text-white ml-1">
                   {result}
                 </span>
               </div>

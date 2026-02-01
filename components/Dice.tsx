@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { useRef, forwardRef, useImperativeHandle } from 'react';
 import { RigidBody, RapierRigidBody } from '@react-three/rapier';
+import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 
@@ -15,51 +16,51 @@ const FACE_NORMALS = [
   { value: 4, normal: new THREE.Vector3(0, 0, -1) },  // -Z面 = 4
 ];
 
-// サイコロの目のパターン（各数字に対応する点の位置）
+// サイコロの目のパターン（各数字に対応する点の位置）- 正規化座標 (-0.35 ~ 0.35)
 const DOT_PATTERNS: { [key: number]: [number, number][] } = {
   1: [[0, 0]],
-  2: [[-0.3, -0.3], [0.3, 0.3]],
-  3: [[-0.3, -0.3], [0, 0], [0.3, 0.3]],
-  4: [[-0.3, -0.3], [-0.3, 0.3], [0.3, -0.3], [0.3, 0.3]],
-  5: [[-0.3, -0.3], [-0.3, 0.3], [0, 0], [0.3, -0.3], [0.3, 0.3]],
-  6: [[-0.3, -0.3], [-0.3, 0], [-0.3, 0.3], [0.3, -0.3], [0.3, 0], [0.3, 0.3]],
+  2: [[-0.25, -0.25], [0.25, 0.25]],
+  3: [[-0.25, -0.25], [0, 0], [0.25, 0.25]],
+  4: [[-0.25, -0.25], [-0.25, 0.25], [0.25, -0.25], [0.25, 0.25]],
+  5: [[-0.25, -0.25], [-0.25, 0.25], [0, 0], [0.25, -0.25], [0.25, 0.25]],
+  6: [[-0.25, -0.25], [-0.25, 0], [-0.25, 0.25], [0.25, -0.25], [0.25, 0], [0.25, 0.25]],
 };
 
-// キャンバスでサイコロの面のテクスチャを生成
-function createDiceTexture(value: number): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
-  const ctx = canvas.getContext('2d')!;
+// 各面のドット配置情報（circleGeometryはXY平面で+Z向き）
+const FACE_CONFIG = [
+  { value: 1, position: [0.51, 0, 0], rotation: [0, Math.PI / 2, 0] },     // +X面
+  { value: 6, position: [-0.51, 0, 0], rotation: [0, -Math.PI / 2, 0] },   // -X面
+  { value: 2, position: [0, 0.51, 0], rotation: [-Math.PI / 2, 0, 0] },    // +Y面（上）
+  { value: 5, position: [0, -0.51, 0], rotation: [Math.PI / 2, 0, 0] },    // -Y面（下）
+  { value: 3, position: [0, 0, 0.51], rotation: [0, 0, 0] },               // +Z面
+  { value: 4, position: [0, 0, -0.51], rotation: [0, Math.PI, 0] },        // -Z面
+];
 
-  // 白背景
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, 256, 256);
+// ドットコンポーネント
+function Dot({ position }: { position: [number, number, number] }) {
+  return (
+    <mesh position={position}>
+      <circleGeometry args={[0.08, 32]} />
+      <meshStandardMaterial color="#1a1a1a" />
+    </mesh>
+  );
+}
 
-  // 角丸の枠
-  ctx.strokeStyle = '#e0e0e0';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.roundRect(8, 8, 240, 240, 16);
-  ctx.stroke();
-
-  // 点を描画
-  ctx.fillStyle = '#1a1a1a';
+// 面のドット群
+function FaceDots({ value, position, rotation }: {
+  value: number;
+  position: [number, number, number];
+  rotation: [number, number, number];
+}) {
   const pattern = DOT_PATTERNS[value];
-  const centerX = 128;
-  const centerY = 128;
-  const scale = 80;
-  const dotRadius = 20;
 
-  pattern.forEach(([x, y]) => {
-    ctx.beginPath();
-    ctx.arc(centerX + x * scale, centerY + y * scale, dotRadius, 0, Math.PI * 2);
-    ctx.fill();
-  });
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  return texture;
+  return (
+    <group position={position} rotation={rotation}>
+      {pattern.map(([x, y], index) => (
+        <Dot key={index} position={[x, y, 0]} />
+      ))}
+    </group>
+  );
 }
 
 export interface DiceRef {
@@ -73,32 +74,16 @@ interface DiceProps {
 const Dice = forwardRef<DiceRef, DiceProps>(({ onRollComplete }, ref) => {
   const rigidBodyRef = useRef<RapierRigidBody>(null);
   const isRolling = useRef(false);
+  const isCentering = useRef(false);
   const stableFrames = useRef(0);
   const lastPosition = useRef(new THREE.Vector3());
-
-  // 各面のマテリアルを生成
-  const materials = useMemo(() => {
-    if (typeof window === 'undefined') return [];
-
-    // BoxGeometry の面の順序: +X, -X, +Y, -Y, +Z, -Z
-    // 対応する目: 1, 6, 2, 5, 3, 4
-    const faceValues = [1, 6, 2, 5, 3, 4];
-
-    return faceValues.map((value) => {
-      const texture = createDiceTexture(value);
-      return new THREE.MeshStandardMaterial({
-        map: texture,
-        roughness: 0.3,
-        metalness: 0.1,
-      });
-    });
-  }, []);
 
   // サイコロを振る関数
   const roll = () => {
     if (!rigidBodyRef.current) return;
 
     isRolling.current = true;
+    isCentering.current = false;
     stableFrames.current = 0;
 
     // 初期位置にリセット
@@ -141,9 +126,37 @@ const Dice = forwardRef<DiceRef, DiceProps>(({ onRollComplete }, ref) => {
     roll,
   }));
 
-  // 毎フレームの処理（停止検知）
+  // 毎フレームの処理（停止検知＆中央移動）
   useFrame(() => {
-    if (!rigidBodyRef.current || !isRolling.current) return;
+    if (!rigidBodyRef.current) return;
+
+    // 中央への移動アニメーション
+    if (isCentering.current) {
+      const position = rigidBodyRef.current.translation();
+      const targetX = 0;
+      const targetZ = 0;
+      const speed = 0.3;
+
+      const newX = THREE.MathUtils.lerp(position.x, targetX, speed);
+      const newZ = THREE.MathUtils.lerp(position.z, targetZ, speed);
+
+      rigidBodyRef.current.setTranslation(
+        { x: newX, y: position.y, z: newZ },
+        true
+      );
+
+      // 十分に中央に近づいたら停止
+      if (Math.abs(newX) < 0.01 && Math.abs(newZ) < 0.01) {
+        rigidBodyRef.current.setTranslation(
+          { x: 0, y: position.y, z: 0 },
+          true
+        );
+        isCentering.current = false;
+      }
+      return;
+    }
+
+    if (!isRolling.current) return;
 
     const position = rigidBodyRef.current.translation();
     const linvel = rigidBodyRef.current.linvel();
@@ -165,8 +178,8 @@ const Dice = forwardRef<DiceRef, DiceProps>(({ onRollComplete }, ref) => {
     if (linearSpeed < 0.1 && angularSpeed < 0.1 && positionDelta < 0.001) {
       stableFrames.current++;
 
-      // 30フレーム安定したら停止と判定
-      if (stableFrames.current > 30) {
+      // 15フレーム安定したら停止と判定
+      if (stableFrames.current > 15) {
         isRolling.current = false;
 
         // 出目を判定
@@ -186,6 +199,13 @@ const Dice = forwardRef<DiceRef, DiceProps>(({ onRollComplete }, ref) => {
           }
         });
 
+        // 速度を完全に停止
+        rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        rigidBodyRef.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
+
+        // 中央への移動を開始
+        isCentering.current = true;
+
         onRollComplete?.(result);
       }
     } else {
@@ -197,15 +217,34 @@ const Dice = forwardRef<DiceRef, DiceProps>(({ onRollComplete }, ref) => {
     <RigidBody
       ref={rigidBodyRef}
       colliders="cuboid"
-      restitution={0.3}
-      friction={0.8}
-      linearDamping={0.5}
-      angularDamping={0.5}
+      restitution={0.2}
+      friction={1.0}
+      linearDamping={1.5}
+      angularDamping={2.0}
       position={[0, 3, 0]}
     >
-      <mesh castShadow receiveShadow material={materials}>
-        <boxGeometry args={[1, 1, 1]} />
-      </mesh>
+      <group>
+        {/* サイコロ本体 */}
+        <RoundedBox
+          args={[1, 1, 1]}
+          radius={0.1}
+          smoothness={4}
+          castShadow
+          receiveShadow
+        >
+          <meshStandardMaterial color="#ffffff" roughness={0.3} metalness={0.1} />
+        </RoundedBox>
+
+        {/* 各面のドット */}
+        {FACE_CONFIG.map(({ value, position, rotation }) => (
+          <FaceDots
+            key={value}
+            value={value}
+            position={position as [number, number, number]}
+            rotation={rotation as [number, number, number]}
+          />
+        ))}
+      </group>
     </RigidBody>
   );
 });

@@ -92,7 +92,7 @@ function SceneContent({ onRollComplete, diceRef }: DiceSceneProps) {
       />
 
       {/* 物理エンジン */}
-      <Physics gravity={[0, -20, 0]}>
+      <Physics gravity={[0, -40, 0]}>
         <Floor />
         <Walls />
         <Dice ref={diceRef} onRollComplete={onRollComplete} />
